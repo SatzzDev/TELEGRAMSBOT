@@ -41,6 +41,14 @@ return reject(new Error(String(err)))
 })
 }
 
+function reSize(buffer, ukur1, ukur2) {
+const jimp = require('jimp')
+return new Promise(async(resolve, reject) => {
+var baper = await jimp.read(buffer);
+var ab = await baper.resize(ukur1, ukur2).getBufferAsync(jimp.MIME_JPEG)
+resolve(ab)
+})
+}  
 
 
 const sleep = async (ms) => {
@@ -176,28 +184,26 @@ ctx.reply('Failed to upload file.');
 bot.command('resize', async (ctx) => {
   if (!ctx.message.reply_to_message) return ctx.reply('Reply to a message with an image');
   if (!ctx.message.reply_to_message.photo) return ctx.reply('Reply message is not a photo');
+
   const args = ctx.message.text.split(' ').slice(1);
   if (args.length < 2) return ctx.reply('Usage: /resize <width> <height>');
+  
   const width = parseInt(args[0]);
   const height = parseInt(args[1]);
   if (isNaN(width) || isNaN(height)) return ctx.reply('Invalid width or height');
+
   const photo = ctx.message.reply_to_message.photo[ctx.message.reply_to_message.photo.length - 1];
   const imageData = photo.file_id;
+
   try {
     const fileResponse = await axios.get(`https://api.telegram.org/bot${global.token}/getFile?file_id=${imageData}`);
     const filePath = fileResponse.data.result.file_path;
     const fileUrl = `https://api.telegram.org/file/bot${global.token}/${filePath}`;
     const fileBufferResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
     const fileBuffer = Buffer.from(fileBufferResponse.data);
-    const tempFilePath = 'temp_photo.jpg';
-    fs.writeFileSync(tempFilePath, fileBuffer);
-    const jimp = require('jimp');
-    const image = await jimp.read(tempFilePath);
-    image.resize(width, height);
-    const resizedImageBuffer = await image.getBufferAsync(jimp.MIME_JPEG);
-    const resizedImage = Buffer.from(resizedImageBuffer).toString('base64');
+    
+    const resizedImage = await resizeImage(fileBuffer, width, height);
     await ctx.replyWithPhoto({ source: resizedImage }, { reply_to_message_id: ctx.message.reply_to_message.message_id });
-    fs.unlinkSync(tempFilePath);
   } catch (err) {
     console.error('Error resizing image:', err);
     ctx.reply('Failed to resize image.');
