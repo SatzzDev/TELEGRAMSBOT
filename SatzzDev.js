@@ -202,7 +202,7 @@ bot.command('resize', async (ctx) => {
     const fileBufferResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
     const fileBuffer = Buffer.from(fileBufferResponse.data);
     
-    const resizedImage = await resizeImage(fileBuffer, width, height);
+    const resizedImage = await reSize(fileBuffer, width, height);
     await ctx.replyWithPhoto({ source: resizedImage }, { reply_to_message_id: ctx.message.reply_to_message.message_id });
   } catch (err) {
     console.error('Error resizing image:', err);
