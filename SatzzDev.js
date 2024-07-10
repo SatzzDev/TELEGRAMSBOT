@@ -4,26 +4,15 @@ const fs = require("fs");
 const express = require("express");
 const axios = require("axios");
 const cron = require("node-cron");
-const { addResponList, delResponList, isAlreadyResponList, sendResponList } = require("./lib/list");
 const chalk = require('chalk');
 const moment = require("moment-timezone");
 const BodyForm = require('form-data')
 
 
-// Ucapan Waktu  
-const timeWib = moment().tz('Asia/Jakarta').format('HH:mm:ss');
-let ucapan = 'Selamat malam';
-if (timeWib < "19:00:00") ucapan = 'Selamat malam';
-if (timeWib < "18:00:00") ucapan = 'Selamat sore';
-if (timeWib < "15:00:00") ucapan = 'Selamat siang';
-if (timeWib < "11:00:00") ucapan = 'Selamat pagi';
-if (timeWib < "06:00:00") ucapan = 'Selamat pagi';
-
-
 
 const app = express();
 const bot = new Telegraf(global.token);
-let db = JSON.parse(fs.readFileSync("./src/list.json"));
+
 
 
 
@@ -76,15 +65,11 @@ try {
 const thumbs = await axios.get(global.thumbnail, { responseType: 'arraybuffer' });
 const thumb = Buffer.from(thumbs.data).toString('base64');
 await ctx.deleteMessage().catch(() => {});
-if (db.length === 0) {
-return ctx.reply("Tidak ada item dalam database.");
-}
-const buttons = db.map((item) => [{ text: item.name, callback_data: `show_${item.key}` }]);
 await ctx.replyWithPhoto({ source: Buffer.from(thumb, 'base64') }, {
 caption: `Halo @${ctx.from.username}!, Selamat datang di ${bot_name}!\n\nApa yang kamu butuhkan? Berikut daftar item kami:`,
 parse_mode: 'Markdown',
 reply_markup: {
-inline_keyboard: buttons
+inline_keyboard: [{ text: 'Website', url: `https://satganzdevs.tech` }]
 }
 });
 } catch (error) {
@@ -94,69 +79,22 @@ ctx.reply("Terjadi kesalahan saat menampilkan daftar.");
 });
 
 
+//wellcome
+bot.on('new_chat_members', (ctx) => {
+const newUser = ctx.message.new_chat_member;
+ctx.replyWithPhoto('https://telegra.ph/file/f89890cc5f9f0f5098f22.jpg',{caption: `Halo ${newUser.first_name}, selamat datang di ${ctx.chat.title}! Jangan lupa baca deskripsi ya.`,parse_mode: 'Markdown',reply_markup: {inline_keyboard: [[{text: 'WhatsApp Group', url: 'https://chat.whatsapp.com/G6W25LQb4Ce2i8r4Z0du1q'}]]}});
+}); 
 
-
-
-// ADDLIST COMMAND
-bot.command("addlist", async (ctx) => {
-try {
-const args = ctx.message.text.split(" ").slice(1);
-if (args.length < 1 && !ctx.message.reply_to_message) {
-return ctx.reply("Penggunaan: /addlist <name>|<key>|<response> atau reply gambar dengan /addlist <name>|<key>|<response>", { reply_to_message_id: ctx.message.message_id });
-}
-const [name, key, response] = args.join(" ").split("|");
-const isImage = ctx.message.reply_to_message && ctx.message.reply_to_message.photo ? true : false;
-let image_buffer = null;
-if (isImage) {
-const photo = ctx.message.reply_to_message.photo[ctx.message.reply_to_message.photo.length - 1];
-const img = photo.file_id;
-const fileResponse = await axios.get(`https://api.telegram.org/bot${bot.token}/getFile?file_id=${img}`);
-const filePath = fileResponse.data.result.file_path;
-const fileUrl = `https://api.telegram.org/file/bot${bot.token}/${filePath}`;
-const buffer = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-image_buffer = Buffer.from(buffer.data).toString('base64');
-}
-if (db.some(item => item.key === key)) {
-return ctx.reply("Key sudah ada di dalam database.", { reply_to_message_id: ctx.message.message_id });
-}
-addResponList(key, name, response || "", isImage, image_buffer, db);
-fs.writeFileSync("./src/list.json", JSON.stringify(db, null, 2));
-ctx.reply(`Respons untuk key "${key}" telah ditambahkan.`, { reply_to_message_id: ctx.message.message_id });
-} catch (error) {
-console.error(error);
-ctx.reply("Terjadi kesalahan saat menambahkan list.");
-}
+//leave
+bot.on('left_chat_member', (ctx) => {
+const leftUser = ctx.message.left_chat_member;
+bot.telegram.sendPhoto(leftUser.id,'https://telegra.ph/file/85d17018c69db96f618b7.jpg',{caption: `Jangan lupain kita ya, ${leftUser.first_name}. Nanti kalo mau join lagi, klik tombol di bawah ini.`,parse_mode: 'Markdown',reply_markup: {inline_keyboard: [[{text: 'Join', url: 'https://t.me/satzzcode'}]]}});
 });
 
 
 
-
-
-// DELLLIST COMMAND
-bot.command("dellist", isOwner, async (ctx) => {
-try {
-const args = ctx.message.text.split(" ").slice(1);
-if (args.length < 1) {
-return ctx.reply("Penggunaan: /dellist <key>", { reply_to_message_id: ctx.message.message_id });
-}
-const key = args[0];
-if (!isAlreadyResponList(key, db)) {
-return ctx.reply("Key tidak ditemukan di dalam database.", { reply_to_message_id: ctx.message.message_id });
-}
-delResponList(key, db);
-fs.writeFileSync("./src/list.json", JSON.stringify(db, null, 2));
-ctx.reply(`Respons untuk key "${key}" telah dihapus.`, { reply_to_message_id: ctx.message.message_id });
-} catch (error) {
-console.error(error);
-ctx.reply("Terjadi kesalahan saat menghapus list.");
-}
-});
-
-
-
-
-
-bot.command('tourl', async (ctx) => {
+switch (bot.command) {
+case 'tourl':{
 if (!ctx.message.reply_to_message) return ctx.reply('Reply to message');
 if (!ctx.message.reply_to_message.photo) return ctx.reply('Reply message is not a photo');
 const processingMessage = await ctx.reply('Uploading your image...', {reply_to_message_id: ctx.message.message_id});
@@ -171,141 +109,45 @@ const fileBuffer = Buffer.from(fileBufferResponse.data);
 const tempFilePath = 'temp_photo.jpg';
 fs.writeFileSync(tempFilePath, fileBuffer);
 const telegraPhUrl = await TelegraPh(tempFilePath);
-await ctx.reply(telegraPhUrl,{reply_to_message_id: ctx.message.reply_to_message.message_id});
 await ctx.deleteMessage(processingMessage.message_id);
+await ctx.reply(telegraPhUrl,{reply_to_message_id: ctx.message.reply_to_message.message_id});
 fs.unlinkSync(tempFilePath);
 } catch (err) {
 console.error('Error uploading file:', err);
 ctx.reply('Failed to upload file.');
 }
-})
+}
+break
 
-
-bot.command('resize', async (ctx) => {
-  if (!ctx.message.reply_to_message) return ctx.reply('Reply to a message with an image');
-  if (!ctx.message.reply_to_message.photo) return ctx.reply('Reply message is not a photo');
-
-  const args = ctx.message.text.split(' ').slice(1);
-  if (args.length < 2) return ctx.reply('Usage: /resize <width> <height>');
-  
-  const width = parseInt(args[0]);
-  const height = parseInt(args[1]);
-  if (isNaN(width) || isNaN(height)) return ctx.reply('Invalid width or height');
-
-  const photo = ctx.message.reply_to_message.photo[ctx.message.reply_to_message.photo.length - 1];
-  const imageData = photo.file_id;
-
-  try {
-    const fileResponse = await axios.get(`https://api.telegram.org/bot${global.token}/getFile?file_id=${imageData}`);
-    const filePath = fileResponse.data.result.file_path;
-    const fileUrl = `https://api.telegram.org/file/bot${global.token}/${filePath}`;
-    const fileBufferResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-    const fileBuffer = Buffer.from(fileBufferResponse.data);
-    
-    const resizedImage = await reSize(fileBuffer, width, height);
-    await ctx.replyWithPhoto({ source: resizedImage }, { reply_to_message_id: ctx.message.reply_to_message.message_id });
-  } catch (err) {
-    console.error('Error resizing image:', err);
-    ctx.reply('Failed to resize image.');
-  }
-});
-
-
-// Perintah SENDLIST pada klik tombol
-bot.action("list", async (ctx) => {
+case 'resize':{
+if (!ctx.message.reply_to_message) return ctx.reply('Reply to a message with an image');
+if (!ctx.message.reply_to_message.photo) return ctx.reply('Reply message is not a photo');
+const args = ctx.message.text.split(' ').slice(1);
+if (args.length < 2) return ctx.reply('Usage: /resize <width> <height>');
+const width = parseInt(args[0]);
+const height = parseInt(args[1]);
+if (isNaN(width) || isNaN(height)) return ctx.reply('Invalid width or height');
+const photo = ctx.message.reply_to_message.photo[ctx.message.reply_to_message.photo.length - 1];
+const imageData = photo.file_id;
+const processingMessage = await ctx.reply('Uploading your image...', {reply_to_message_id: ctx.message.message_id});
 try {
-const thumbs = await axios.get(global.thumbnail, { responseType: 'arraybuffer' });
-const thumb = Buffer.from(thumbs.data).toString('base64');
-await ctx.deleteMessage().catch(() => {});
-if (db.length === 0) {
-return ctx.reply("Tidak ada item dalam database.");
+const fileResponse = await axios.get(`https://api.telegram.org/bot${global.token}/getFile?file_id=${imageData}`);
+const filePath = fileResponse.data.result.file_path;
+const fileUrl = `https://api.telegram.org/file/bot${global.token}/${filePath}`;
+const fileBufferResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+const fileBuffer = Buffer.from(fileBufferResponse.data);
+const resizedImage = await reSize(fileBuffer, width, height);
+await ctx.deleteMessage(processingMessage.message_id);
+await ctx.replyWithPhoto({ source: resizedImage }, { reply_to_message_id: ctx.message.reply_to_message.message_id });
+} catch (err) {
+console.error('Error resizing image:', err);
+ctx.reply('Failed to resize image.');
 }
-db = JSON.parse(fs.readFileSync("./src/list.json")); // Memuat ulang database
-const buttons = db.map((item) => [{ text: item.name, callback_data: `show_${item.key}` }]);
-await ctx.replyWithPhoto({ source: Buffer.from(thumb, 'base64') }, {
-caption: `Halo @${ctx.from.username}!, Selamat datang di ${bot_name}!\n\nApa yang kamu butuhkan? Berikut daftar item kami:`,
-parse_mode: 'Markdown',
-reply_markup: {
-inline_keyboard: buttons
 }
-});
-} catch (error) {
-console.error(error);
-ctx.reply("Terjadi kesalahan saat menampilkan daftar.");
+break
 }
-});
 
 
-
-
-
-// SHOW LIST COMMAND on slash command
-bot.command("list", async (ctx) => {
-try {
-const thumbs = await axios.get(global.thumbnail, { responseType: 'arraybuffer' });
-const thumb = Buffer.from(thumbs.data).toString('base64');
-await ctx.deleteMessage().catch(() => {});
-if (db.length === 0) {
-return ctx.reply("Tidak ada item dalam database.");
-}
-db = JSON.parse(fs.readFileSync("./src/list.json")); // Memuat ulang database
-const buttons = db.map((item) => [{ text: item.name, callback_data: `show_${item.key}` }]);
-await ctx.replyWithPhoto({ source: Buffer.from(thumb, 'base64') }, {
-caption: `Halo @${ctx.from.username}!, Selamat datang di ${bot_name}!\n\nApa yang kamu butuhkan? Berikut daftar item kami:`,
-parse_mode: 'Markdown',
-reply_markup: {
-inline_keyboard: buttons
-}
-});
-} catch (error) {
-console.error(error);
-ctx.reply("Terjadi kesalahan saat menampilkan daftar.");
-}
-});
-
-
-
-
-
-// SHOW LIST COMMAND on button click
-bot.action(/^show_/, async (ctx) => {
-try {
-ctx.deleteMessage().catch(() => {});
-db = JSON.parse(fs.readFileSync("./src/list.json")); // Memuat ulang database
-const key = ctx.match.input.split("_")[1];
-const item = db.find((item) => item.key === key);
-if (item) {
-if (item.isImage) {
-const imageBuffer = Buffer.from(item.image_buffer, 'base64');
-await ctx.replyWithPhoto({ source: imageBuffer }, {
-caption: item.response,
-reply_markup: {
-inline_keyboard: [[{ text: 'Kembali', callback_data: 'list' }]]
-}
-});
-} else {
-ctx.reply(item.response, Markup.inlineKeyboard([[Markup.button.callback("Kembali", "list")]]));
-}
-} else {
-ctx.reply(`Tidak ada respons yang ditemukan untuk key "${key}".`);
-}
-} catch (error) {
-console.error(error);
-ctx.reply("Terjadi kesalahan saat menampilkan respons.");
-}
-});
-
-
-
-
-
-
-
-
-// RESPONSE TEXT 
-bot.on("text", (ctx) => {
-ctx.reply("Maaf, saya tidak mengerti perintah Anda. Ketik /list untuk melihat menu.");
-});
 
 // FAKE WEB
 app.get("/", (req, res) => {
