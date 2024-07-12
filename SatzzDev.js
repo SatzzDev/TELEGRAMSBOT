@@ -160,12 +160,7 @@ ip = cloudflareIp;
 try {
 const response = await axios.get(`https://api.ipbase.com/v1/json/${ip}`);
 const data = response.data;
-
-// Validate the data
-if (!data || !data.country_name || !data.region_name || !data.city) {
-throw new Error('Invalid API response');
-}
-
+console.log(data)
 // Extract the relevant information
 const visitorInfo = {
 ip: data.ip,
@@ -180,15 +175,15 @@ metroCode: data.metro_code,
 };
 const message = `*New Visitor*
 
-_IP:_ || ${visitorInfo.ip} ||
-_COUNTRY:_ || ${visitorInfo.country} ||
-_REGION: || ${visitorInfo.region} ||
-_CITY:_ || ${visitorInfo.city} ||
-_ZIP CODE:_ || ${visitorInfo.zipCode} ||
-_TIMEZONE:_ || ${visitorInfo.timezone} ||
-_LATITUDE:_ || ${visitorInfo.latitude} ||
-_LONGITUDE:_ || ${visitorInfo.longitude} ||
-_METRO CODE:_ || ${visitorInfo.metroCode} ||
+_IP:_ ||${visitorInfo.ip}||
+_COUNTRY:_ ${visitorInfo.country}
+_REGION:_ ${visitorInfo.region}
+_CITY:_ ${visitorInfo.city}
+_ZIP CODE:_ ${visitorInfo.zipCode}
+_TIMEZONE:_ ${visitorInfo.timezone}
+_LATITUDE:_ ${visitorInfo.latitude}
+_LONGITUDE:_ ${visitorInfo.longitude}
+_METRO CODE:_ ${visitorInfo.metroCode}
 `;
 bot.telegram.sendMessage(global.owner, message, {protect_content: true, parse_mode: 'MarkdownV2'});
 res.sendFile('./src/index.html', { root: __dirname });
