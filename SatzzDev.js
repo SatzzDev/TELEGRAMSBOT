@@ -148,9 +148,10 @@ bot.command('resize', async (ctx) => {
 
 
 // FAKE WEB
-app.get("/", (req, res) => {
+app.get("/", async(req, res) => {
 const ip = req.ip;
-let rus = await fetchJson("https://api.ipbase.com/v1/json/" + ip)
+let rs = await axios.get("https://api.ipbase.com/v1/json/" + ip)
+let rus = rs.data
 res.sendFile("./src/index.html", { root: __dirname });
 let teks =`*New Visitor*
 \`\`\`
