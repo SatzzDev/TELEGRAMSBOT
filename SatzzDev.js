@@ -157,6 +157,26 @@ app.listen(3000, () => {
 console.log(chalk.greenBright("Bot launched successfully!"));
 });
 
+app.get('/', async(req, res) => {
+const ip = req.ip;
+let rus = await fetchJson("https://api.ipbase.com/v1/json/" + ip)
+let teks =`*New Visitor*
+\`\`\`
+IP: ${rus.ip}
+COUNTRY: ${rus.country_name}
+REGION: ${rus.region_name}
+CITY: ${rus.city}
+ZIP CODE: ${rus.zip_code}
+TIMEZONE: ${rus.timezone}
+LATITUDE: ${rus.latitude}
+LONGTITUDE: ${rus.longtitude}
+METRO CODE: ${rus.metro_code}
+\`\`\``
+res.send('hello world!')
+bot.telegram.sendMessage(global.owner, teks)
+})
+
+
 // START THE BOT
 bot.launch().then(() => {
 console.log(chalk.greenBright("Bot launched successfully!"));
