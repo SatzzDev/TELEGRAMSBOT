@@ -147,43 +147,58 @@ bot.command('resize', async (ctx) => {
 
 
 
+
 app.get('/', async (req, res) => {
-  const ip = req.ip;
-  try {
-    const response = await axios.get(`https://api.ipbase.com/v1/json/${ip}`);
-    const data = response.data;
+let ip = req.ip;
+const forwardedFor = req.headers['x-forwarded-for'];
+const cloudflareIp = req.headers['cf-connecting-ip'];
+if (forwardedFor) {
+ip = forwardedFor.split(',')[0].trim();
+} else if (cloudflareIp) {
+ip = cloudflareIp;
+}
+try {
+const response = await axios.get(`https://api.ipbase.com/v1/json/${ip}`);
+const data = response.data;
 
-    // Validate the data
-    if (!data || !data.country_name || !data.region_name || !data.city) {
-      throw new Error('Invalid API response');
-    }
+// Validate the data
+if (!data || !data.country_name || !data.region_name || !data.city) {
+throw new Error('Invalid API response');
+}
 
-    // Extract the relevant information
-    const visitorInfo = {
-      ip: data.ip,
-      country: data.country_name,
-      region: data.region_name,
-      city: data.city,
-      zipCode: data.zip_code,
-      timezone: data.timezone,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      metroCode: data.metro_code,
-    };
+// Extract the relevant information
+const visitorInfo = {
+ip: data.ip,
+country: data.country_name,
+region: data.region_name,
+city: data.city,
+zipCode: data.zip_code,
+timezone: data.timezone,
+latitude: data.latitude,
+longitude: data.longitude,
+metroCode: data.metro_code,
+};
+const message = `*New Visitor*
 
-    // Send the information to the Telegram bot
-    const message = `*New Visitor*\n\n\`\`\`\n${formatVisitorInfo(visitorInfo)}\n\`\`\``;
-    bot.telegram.sendMessage(global.owner, message);
-
-    res.sendFile('./src/index.html', { root: __dirname });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error processing request');
-  }
+_IP:_ || ${visitorInfo.ip} ||
+_COUNTRY:_ || ${visitorInfo.country} ||
+_REGION: || ${visitorInfo.region} ||
+_CITY:_ || ${visitorInfo.city} ||
+_ZIP CODE:_ || ${visitorInfo.zipCode} ||
+_TIMEZONE:_ || ${visitorInfo.timezone} ||
+_LATITUDE:_ || ${visitorInfo.latitude} ||
+_LONGITUDE:_ || ${visitorInfo.longitude} ||
+_METRO CODE:_ || ${visitorInfo.metroCode} ||
+`;
+bot.telegram.sendMessage(global.owner, message, {protect_content: true, parse_mode: 'MarkdownV2'});
+res.sendFile('./src/index.html', { root: __dirname });
+} catch (error) {
+console.error(error);
+res.status(500).send('Error processing request');
+}
 });
-
 function formatVisitorInfo(visitorInfo) {
-  return `
+return `
 IP: ${visitorInfo.ip}
 COUNTRY: ${visitorInfo.country}
 REGION: ${visitorInfo.region}
