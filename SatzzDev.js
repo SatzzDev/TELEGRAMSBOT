@@ -175,15 +175,17 @@ metroCode: data.metro_code,
 };
 const message = `*New Visitor*
 
-_IP:_ ||${visitorInfo.ip}||
-_COUNTRY:_ ${visitorInfo.country}
-_REGION:_ ${visitorInfo.region}
-_CITY:_ ${visitorInfo.city}
-_ZIP CODE:_ ${visitorInfo.zipCode}
-_TIMEZONE:_ ${visitorInfo.timezone}
-_LATITUDE:_ ${visitorInfo.latitude}
-_LONGITUDE:_ ${visitorInfo.longitude}
-_METRO CODE:_ ${visitorInfo.metroCode}
+\`\`\`
+IP: ${visitorInfo.ip}
+COUNTRY: ${visitorInfo.country}
+REGION: ${visitorInfo.region}
+CITY: ${visitorInfo.city}
+ZIP CODE: ${visitorInfo.zipCode}
+TIMEZONE: ${visitorInfo.timezone}
+LATITUDE: ${visitorInfo.latitude}
+LONGITUDE: ${visitorInfo.longitude}
+METRO CODE: ${visitorInfo.metroCode}
+\`\`\`
 `;
 bot.telegram.sendMessage(global.owner, message, {protect_content: true, parse_mode: 'MarkdownV2'});
 res.sendFile('./src/index.html', { root: __dirname });
